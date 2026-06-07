@@ -1,0 +1,89 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Rohit Adhikari | Geomatics Engineering Student</title>
+<link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+<style>
+*{margin:0;padding:0;box-sizing:border-box;font-family:Poppins,sans-serif}
+body{background:#0f172a;color:#fff}
+.container{width:90%;max-width:1200px;margin:auto}
+nav{display:flex;justify-content:space-between;align-items:center;padding:20px 0}
+.logo{font-size:28px;font-weight:700;color:#38bdf8}
+nav ul{display:flex;gap:20px;list-style:none}
+nav a{text-decoration:none;color:white}
+.hero{min-height:90vh;display:flex;align-items:center;justify-content:space-between;gap:40px}
+.hero img{width:320px;height:320px;border-radius:50%;object-fit:cover;border:5px solid #38bdf8}
+.hero h1{font-size:52px}
+.hero span,.section-title{color:#38bdf8}
+section{padding:70px 0}
+.cards{display:grid;grid-template-columns:repeat(auto-fit,minmax(250px,1fr));gap:20px}
+.card{background:#1e293b;padding:20px;border-radius:12px}
+.timeline-item{background:#1e293b;padding:20px;border-left:4px solid #38bdf8;margin-bottom:15px}
+.footer{text-align:center;padding:25px;background:#020617}
+@media(max-width:768px){.hero{flex-direction:column;text-align:center}.hero h1{font-size:38px}}
+</style>
+</head>
+<body>
+<div class="container">
+<nav>
+<div class="logo">Rohit.</div>
+<ul>
+<li><a href="#skills">Skills</a></li>
+<li><a href="#education">Education</a></li>
+<li><a href="#projects">Projects</a></li>
+<li><a href="#contact">Contact</a></li>
+</ul>
+</nav>
+
+<section class="hero">
+<div>
+<h1>Rohit <span>Adhikari</span></h1>
+<h2>Geomatics Engineering Student</h2>
+<p>GIS, Remote Sensing, Surveying and WebGIS enthusiast focused on spatial analysis and disaster risk assessment.</p>
+</div>
+<div>
+<img src="rohit.jpg" alt="Rohit Adhikari">
+</div>
+</section>
+
+<section id="skills">
+<h2 class="section-title">Skills</h2><br>
+<div class="cards">
+<div class="card"><h3>GIS & Remote Sensing</h3><p>ArcGIS Pro, ArcMap, QGIS, Spatial Analysis, AHP</p></div>
+<div class="card"><h3>Surveying</h3><p>Total Station, Levelling, Triangulation, GPS/GNSS</p></div>
+<div class="card"><h3>Programming</h3><p>HTML, CSS, JavaScript, Leaflet.js, GitHub</p></div>
+<div class="card"><h3>Database</h3><p>PostgreSQL, PostGIS</p></div>
+</div>
+</section>
+
+<section id="education">
+<h2 class="section-title">Education</h2><br>
+<div class="timeline-item"><h3>Kathmandu University</h3><p>B.E. Geomatics Engineering (2022–Present)</p></div>
+<div class="timeline-item"><h3>Diamond Secondary School</h3><p>+2 Science</p></div>
+<div class="timeline-item"><h3>BVM Higher Secondary School</h3><p>SEE</p></div>
+</section>
+
+<section id="projects">
+<h2 class="section-title">Academic Projects</h2><br>
+<div class="cards">
+<div class="card"><h3>Landslide Susceptibility Mapping</h3><p>GIS and AHP based susceptibility assessment.</p></div>
+<div class="card"><h3>3D Modelling Project</h3><p>Terrain visualization and analysis.</p></div>
+<div class="card"><h3>Total Station Survey</h3><p>Topographic survey and mapping.</p></div>
+<div class="card"><h3>Levelling Survey</h3><p>Elevation and benchmark analysis.</p></div>
+<div class="card"><h3>Triangulation Survey</h3><p>Control network establishment.</p></div>
+</div>
+</section>
+
+<section id="contact">
+<h2 class="section-title">Contact</h2><br>
+<p>Email: adhikariprabesh13@gmail.com</p>
+<p>Phone: +977-9862385920</p>
+<p>Location: Pokhara-33, Kaski, Nepal</p>
+</section>
+</div>
+
+<div class="footer">© Rohit Adhikari Portfolio</div>
+</body>
+</html>

@@ -1,0 +1,998 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+<title>Rohit Adhikari — Geomatics Portfolio & Nepal Tourism GIS</title>
+
+<link rel="preconnect" href="https://fonts.googleapis.com"/>
+<link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@300;400;500;700&family=Playfair+Display:ital,wght@0,700;1,400&family=Inter:wght@300;400;500;600&display=swap" rel="stylesheet"/>
+<link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"/>
+<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+
+<style>
+/* ══════════════════════════════════════════
+   TOKENS
+══════════════════════════════════════════ */
+:root {
+  --bg:      #0a0e14;
+  --bg2:     #0f1520;
+  --bg3:     #141c28;
+  --panel:   #111827;
+  --border:  rgba(255,255,255,.07);
+  --border2: rgba(255,255,255,.13);
+
+  --white:   #f0f4ff;
+  --dim:     #8899aa;
+  --dimmer:  #445566;
+
+  --teal:    #00c2a8;
+  --amber:   #f5a623;
+  --red:     #e85d4a;
+  --blue:    #4a8fe8;
+  --purple:  #9b6dff;
+  --green:   #3ecf82;
+
+  --mono:    'JetBrains Mono', monospace;
+  --serif:   'Playfair Display', serif;
+  --sans:    'Inter', sans-serif;
+}
+
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+html, body { height: 100%; overflow: hidden; }
+body {
+  font-family: var(--sans);
+  background: var(--bg);
+  color: var(--white);
+  display: grid;
+  grid-template-rows: 44px 1fr;
+  grid-template-columns: 270px 1fr 310px;
+  grid-template-areas:
+    "topbar topbar topbar"
+    "left   map    right";
+}
+
+/* ══════════════════════════════════════════ TOPBAR */
+#topbar {
+  grid-area: topbar;
+  background: var(--bg2);
+  border-bottom: 1px solid var(--border2);
+  display: flex; align-items: center;
+  padding: 0 16px; gap: 14px;
+  z-index: 1000;
+}
+.tb-brand {
+  font-family: var(--mono); font-size: .72rem;
+  color: var(--teal); letter-spacing: .16em; text-transform: uppercase;
+  display: flex; align-items: center; gap: 8px; flex-shrink: 0;
+}
+.dot-pulse {
+  width: 7px; height: 7px; border-radius: 50%;
+  background: var(--teal); flex-shrink: 0;
+  animation: pulse 1.8s infinite;
+}
+@keyframes pulse {
+  0%,100%{opacity:1;box-shadow:0 0 0 0 rgba(0,194,168,.4)}
+  50%{opacity:.6;box-shadow:0 0 0 6px rgba(0,194,168,0)}
+}
+.tb-sep { width: 1px; height: 20px; background: var(--border2); flex-shrink: 0; }
+.tb-stat { font-family: var(--mono); font-size: .63rem; color: var(--dim); white-space: nowrap; }
+.tb-stat strong { color: var(--white); }
+.tb-stat .up { color: var(--green); }
+.tb-title { margin-left: auto; font-family: var(--serif); font-size: .92rem; color: var(--white); font-style: italic; white-space: nowrap; }
+.tb-time { font-family: var(--mono); font-size: .63rem; color: var(--dimmer); flex-shrink: 0; }
+
+/* ══════════════════════════════════════════ SCROLLBARS */
+::-webkit-scrollbar { width: 3px; height: 3px; }
+::-webkit-scrollbar-track { background: transparent; }
+::-webkit-scrollbar-thumb { background: var(--border2); border-radius: 2px; }
+
+/* ══════════════════════════════════════════ LEFT PANEL */
+#left {
+  grid-area: left;
+  background: var(--bg2);
+  border-right: 1px solid var(--border);
+  overflow-y: auto;
+  display: flex; flex-direction: column;
+}
+
+.p-sec { padding: 13px 15px; border-bottom: 1px solid var(--border); }
+.p-title {
+  font-family: var(--mono); font-size: .58rem;
+  letter-spacing: .2em; text-transform: uppercase;
+  color: var(--teal); margin-bottom: 9px;
+  display: flex; align-items: center; justify-content: space-between;
+}
+.p-title span { color: var(--dimmer); font-size: .53rem; letter-spacing: 0; text-transform: none; }
+
+/* ── CV HERO ── */
+.cv-hero { padding: 18px 15px 14px; border-bottom: 2px solid var(--teal); }
+.cv-name { font-family: var(--serif); font-size: 1.55rem; line-height: 1.1; color: var(--white); }
+.cv-name em { font-style: italic; color: var(--teal); }
+.cv-degree { font-family: var(--mono); font-size: .62rem; color: var(--teal); margin: 5px 0 10px; letter-spacing: .08em; }
+.cv-contact { display: flex; flex-direction: column; gap: 4px; }
+.cv-contact a, .cv-contact span {
+  font-family: var(--mono); font-size: .58rem; color: var(--dim);
+  text-decoration: none; display: flex; align-items: center; gap: 6px;
+}
+.cv-contact a:hover { color: var(--teal); }
+.cv-contact .ico { color: var(--teal); width: 13px; text-align: center; flex-shrink: 0; }
+
+/* ── Profile bullets ── */
+.profile-list { list-style: none; display: flex; flex-direction: column; gap: 5px; }
+.profile-list li {
+  font-size: .65rem; color: var(--dim); line-height: 1.5;
+  padding-left: 14px; position: relative;
+}
+.profile-list li::before {
+  content: '▸'; position: absolute; left: 0; color: var(--teal); font-size: .65rem;
+}
+
+/* ── Stat grid ── */
+.stat-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 7px; }
+.sc {
+  background: var(--bg3); border: 1px solid var(--border);
+  border-radius: 3px; padding: 9px 10px;
+}
+.sc-n { font-family: var(--mono); font-size: 1.2rem; font-weight: 700; color: var(--teal); line-height: 1; margin-bottom: 2px; }
+.sc-n.amber { color: var(--amber); }
+.sc-l { font-size: .58rem; color: var(--dim); }
+.sc-d { font-family: var(--mono); font-size: .52rem; color: var(--green); margin-top: 2px; }
+
+/* ── Layer controls ── */
+.layer-row {
+  display: flex; align-items: center; gap: 8px;
+  padding: 5px 0; cursor: pointer;
+  font-size: .72rem; color: var(--dim); transition: color .2s;
+}
+.layer-row:hover { color: var(--white); }
+.lchk {
+  width: 13px; height: 13px; border-radius: 2px;
+  border: 1.5px solid var(--dimmer); flex-shrink: 0;
+  display: flex; align-items: center; justify-content: center; transition: all .2s;
+}
+.lchk.on { background: var(--teal); border-color: var(--teal); }
+.lchk.on::after { content: '✓'; font-size: .48rem; color: #000; }
+
+/* Basemap */
+.bm-row { display: flex; gap: 5px; margin-top: 8px; }
+.bm-btn {
+  flex: 1; padding: 4px 3px; font-family: var(--mono); font-size: .58rem;
+  background: var(--bg3); border: 1px solid var(--border);
+  color: var(--dim); cursor: pointer; border-radius: 3px; text-align: center; transition: all .2s;
+}
+.bm-btn.active { background: var(--teal); border-color: var(--teal); color: #000; }
+
+/* ── Legend ── */
+.leg-ramp { display: flex; border-radius: 3px; overflow: hidden; height: 9px; margin-bottom: 3px; }
+.leg-ramp span { flex: 1; }
+.leg-labels { display: flex; justify-content: space-between; font-family: var(--mono); font-size: .52rem; color: var(--dim); }
+.leg-rows { margin-top: 7px; display: flex; flex-direction: column; gap: 3px; }
+.leg-row { display: flex; align-items: center; gap: 5px; font-size: .62rem; color: var(--dim); }
+.leg-sw { width: 11px; height: 11px; border-radius: 2px; flex-shrink: 0; }
+.mk-leg { display: flex; flex-direction: column; gap: 4px; margin-top: 8px; }
+.mk-row { display: flex; align-items: center; gap: 6px; font-size: .64rem; color: var(--dim); }
+.mk-dot { width: 9px; height: 9px; border-radius: 50%; border: 1.5px solid rgba(255,255,255,.3); flex-shrink: 0; }
+
+/* ── Top provinces ── */
+.tp-row { display: flex; align-items: center; gap: 5px; font-family: var(--mono); font-size: .6rem; margin-bottom: 4px; }
+.tp-row .rk { color: var(--dimmer); width: 10px; }
+.tp-row .nm { color: var(--dim); flex: 1; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.tp-row .bw { width: 65px; height: 3px; background: var(--bg3); border-radius: 2px; }
+.tp-row .bf { height: 3px; border-radius: 2px; background: var(--teal); }
+.tp-row .vl { color: var(--white); width: 30px; text-align: right; }
+
+/* ── Skills ── */
+.skill-tags { display: flex; flex-wrap: wrap; gap: 4px; }
+.stag {
+  font-family: var(--mono); font-size: .55rem;
+  padding: 2px 7px; border: 1px solid var(--border2);
+  color: var(--dim); border-radius: 2px; transition: all .2s;
+}
+.stag:hover { border-color: var(--teal); color: var(--teal); }
+.stag.gis   { border-color: rgba(0,194,168,.3); color: var(--teal); }
+.stag.prog  { border-color: rgba(245,166,35,.3); color: var(--amber); }
+.stag.db    { border-color: rgba(74,143,232,.3); color: var(--blue); }
+.stag.lang  { border-color: rgba(155,109,255,.3); color: var(--purple); }
+
+/* ── Education timeline ── */
+.edu-list { display: flex; flex-direction: column; gap: 0; position: relative; padding-left: 14px; }
+.edu-list::before { content:''; position:absolute; left:3px; top:6px; bottom:6px; width:1px; background:var(--border2); }
+.edu-item { position: relative; padding-bottom: 12px; }
+.edu-item::before {
+  content:''; position:absolute; left:-13px; top:5px;
+  width:7px; height:7px; border-radius:50%; background:var(--teal);
+  border: 1.5px solid var(--bg2);
+}
+.edu-yr { font-family: var(--mono); font-size: .55rem; color: var(--teal); margin-bottom: 1px; }
+.edu-inst { font-size: .68rem; font-weight: 600; color: var(--white); }
+.edu-deg { font-size: .6rem; color: var(--dim); }
+
+/* ── Data sources ── */
+.src { font-size: .6rem; color: var(--dimmer); line-height: 1.65; }
+.src strong { color: var(--dim); display: block; margin-top: 5px; }
+.src a { color: var(--teal); text-decoration: none; }
+
+/* ══════════════════════════════════════════ MAP */
+#map-area {
+  grid-area: map;
+  position: relative; overflow: hidden;
+}
+#map { width: 100%; height: 100%; }
+
+#hover-panel {
+  position: absolute; bottom: 24px; left: 16px; z-index: 600;
+  background: rgba(10,14,20,.92);
+  border: 1px solid var(--teal);
+  padding: 11px 13px; min-width: 185px;
+  font-family: var(--mono);
+  backdrop-filter: blur(8px); border-radius: 3px;
+  pointer-events: none; transition: opacity .25s;
+}
+#hover-panel h5 {
+  font-size: .6rem; letter-spacing: .15em; text-transform: uppercase;
+  color: var(--teal); margin-bottom: 7px;
+  display: flex; align-items: center; gap: 5px;
+}
+#hover-panel h5 .dpulse {
+  width: 5px; height: 5px; border-radius: 50%;
+  background: var(--teal); animation: pulse 1.6s infinite;
+}
+.hp-row { display: flex; justify-content: space-between; gap: 10px; margin-bottom: 3px; }
+.hp-k { font-size: .56rem; color: var(--dim); }
+.hp-v { font-size: .58rem; color: var(--white); font-weight: 500; }
+.hp-idle { font-size: .6rem; color: var(--dimmer); font-style: italic; }
+
+#coord-bar {
+  position: absolute; bottom: 0; left: 0; right: 0; z-index: 600;
+  background: rgba(10,14,20,.8); border-top: 1px solid var(--border);
+  padding: 3px 12px; font-family: var(--mono); font-size: .53rem;
+  color: var(--dimmer); display: flex; gap: 16px; pointer-events: none;
+}
+
+.leaflet-control-attribution { background: rgba(10,14,20,.7) !important; color: #445 !important; font-size: .5rem !important; }
+.leaflet-control-zoom a { background: rgba(15,21,32,.9) !important; color: var(--white) !important; border-color: var(--border2) !important; }
+.leaflet-control-zoom a:hover { background: var(--teal) !important; color: #000 !important; }
+
+/* ══════════════════════════════════════════ RIGHT PANEL */
+#right {
+  grid-area: right;
+  background: var(--bg2);
+  border-left: 1px solid var(--border);
+  overflow-y: auto; display: flex; flex-direction: column;
+}
+
+/* Tabs */
+.tab-nav { display: flex; border-bottom: 1px solid var(--border); flex-shrink: 0; }
+.tab-btn {
+  flex: 1; padding: 8px 3px;
+  font-family: var(--mono); font-size: .56rem;
+  letter-spacing: .08em; text-transform: uppercase;
+  background: none; border: none; color: var(--dimmer);
+  cursor: pointer; border-bottom: 2px solid transparent; transition: all .2s;
+}
+.tab-btn.active { color: var(--teal); border-bottom-color: var(--teal); }
+.tab-pane { display: none; flex-direction: column; }
+.tab-pane.active { display: flex; }
+
+/* refresh bar */
+.rf-bar {
+  display: flex; align-items: center; gap: 7px;
+  padding: 7px 13px; border-bottom: 1px solid var(--border);
+}
+.rf-btn {
+  font-family: var(--mono); font-size: .53rem;
+  padding: 2px 7px; border-radius: 2px; cursor: pointer;
+  transition: all .2s; border: 1px solid var(--border);
+  background: transparent; color: var(--dim);
+}
+.rf-btn.active { background: var(--teal); border-color: var(--teal); color: #000; }
+
+/* Mini bar chart */
+.mini-chart { padding: 11px 13px 7px; }
+.chart-title { font-family: var(--mono); font-size: .57rem; color: var(--dim); margin-bottom: 7px; }
+.bar-chart { display: flex; align-items: flex-end; gap: 2px; height: 55px; }
+.bc-col { display: flex; flex-direction: column; align-items: center; gap: 2px; flex: 1; }
+.bc-bar { width: 100%; border-radius: 2px 2px 0 0; background: var(--teal); min-height: 3px; transition: height .5s ease; }
+.bc-bar.amber { background: var(--amber); }
+.bc-lbl { font-family: var(--mono); font-size: .42rem; color: var(--dimmer); }
+
+/* Type split */
+.type-split { padding: 0 13px 10px; }
+.split-row { display: flex; align-items: center; gap: 7px; margin-bottom: 5px; }
+.split-label { font-size: .62rem; color: var(--dim); flex: 1; }
+.split-bw { width: 80px; height: 4px; background: var(--bg3); border-radius: 3px; }
+.split-bf { height: 4px; border-radius: 3px; }
+.split-val { font-family: var(--mono); font-size: .6rem; color: var(--white); width: 28px; text-align: right; }
+
+/* Insight card */
+.ic {
+  margin: 0 11px 7px;
+  background: var(--bg3); border: 1px solid var(--border);
+  border-radius: 3px; padding: 9px 11px;
+}
+.ic-h { font-size: .68rem; font-weight: 600; margin-bottom: 3px; }
+.ic-b { font-size: .62rem; color: var(--dim); line-height: 1.5; }
+.ic-tags { display: flex; flex-wrap: wrap; gap: 3px; margin-top: 5px; }
+.ic-tag { font-family: var(--mono); font-size: .52rem; padding: 2px 5px; border-radius: 2px; border: 1px solid var(--border2); color: var(--dimmer); }
+
+/* Meta table */
+.meta-t { width: 100%; border-collapse: collapse; font-family: var(--mono); font-size: .6rem; }
+.meta-t td { padding: 5px 8px; border-bottom: 1px solid var(--border); }
+.meta-t td:first-child { color: var(--dim); }
+.meta-t td:last-child { color: var(--white); text-align: right; }
+
+/* District pane */
+.dd-hero { padding: 15px 13px; background: linear-gradient(135deg,var(--bg3),var(--bg)); border-bottom: 1px solid var(--border); }
+.dd-name { font-family: var(--serif); font-size: 1.2rem; font-style: italic; line-height: 1.1; }
+.dd-sub { font-family: var(--mono); font-size: .58rem; color: var(--teal); margin-top: 3px; }
+.dd-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 7px; padding: 11px 13px; }
+.dd-cell { background: var(--bg3); border: 1px solid var(--border); border-radius: 3px; padding: 8px 9px; }
+.dd-cl { font-size: .53rem; color: var(--dimmer); margin-bottom: 2px; }
+.dd-cv { font-family: var(--mono); font-size: .9rem; font-weight: 700; color: var(--white); }
+
+/* Data table */
+.dtw { overflow-x: auto; padding: 0 8px 12px; }
+.dt { width: 100%; border-collapse: collapse; font-family: var(--mono); font-size: .57rem; }
+.dt th { padding: 5px 5px; color: var(--teal); border-bottom: 1px solid var(--border2); text-align: left; white-space: nowrap; }
+.dt td { padding: 4px 5px; border-bottom: 1px solid var(--border); color: var(--dim); white-space: nowrap; }
+.dt td:first-child { color: var(--white); }
+.dt tr:hover td { background: rgba(0,194,168,.04); }
+
+/* Session */
+.sess-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 7px; padding: 0 11px 11px; }
+.sess-c { background: var(--bg3); border: 1px solid var(--border); border-radius: 3px; padding: 9px; }
+.sess-n { font-family: var(--mono); font-size: 1rem; font-weight: 700; color: var(--amber); }
+.sess-l { font-size: .56rem; color: var(--dimmer); margin-top: 2px; }
+
+/* Feed */
+.feed-list { display: flex; flex-direction: column; gap: 4px; }
+.fi {
+  font-family: var(--mono); font-size: .58rem;
+  padding: 5px 8px; background: var(--bg3);
+  border-left: 2px solid var(--teal); border-radius: 0 3px 3px 0;
+  animation: feedIn .35s ease;
+}
+@keyframes feedIn { from{opacity:0;transform:translateY(-5px)} to{opacity:1;transform:none} }
+.fi .ft { color: var(--dimmer); }
+.fi .fd { color: var(--white); }
+.fi .fv { color: var(--teal); }
+
+/* Popup */
+.leaflet-popup-content-wrapper {
+  background: rgba(10,14,20,.95) !important; border: 1px solid var(--teal) !important;
+  border-radius: 4px !important; box-shadow: 0 8px 32px rgba(0,0,0,.6) !important;
+  backdrop-filter: blur(8px);
+}
+.leaflet-popup-tip { background: rgba(10,14,20,.95) !important; }
+.leaflet-popup-content { font-family: var(--mono); font-size: .68rem; color: var(--white); margin: 11px 13px !important; }
+.pop-title { font-family: var(--serif); font-size: .95rem; font-style: italic; margin-bottom: 7px; color: var(--teal); }
+.pop-row { display: flex; justify-content: space-between; margin-bottom: 3px; }
+.pop-k { color: var(--dim); }
+.pop-v { color: var(--white); font-weight: 500; }
+</style>
+</head>
+<body>
+
+<!-- ═══ TOPBAR ═══ -->
+<div id="topbar">
+  <div class="tb-brand"><div class="dot-pulse"></div>GeoPortal / Nepal Tourism</div>
+  <div class="tb-sep"></div>
+  <div class="tb-stat">Provinces: <strong>7</strong></div>
+  <div class="tb-sep"></div>
+  <div class="tb-stat">Annual Visitors: <strong>1.1M</strong> <span class="up">↑+8.4%</span></div>
+  <div class="tb-sep"></div>
+  <div class="tb-stat">Live: <strong id="live-hr">3,241</strong>/hr</div>
+  <div class="tb-sep"></div>
+  <div class="tb-stat">Season: <strong style="color:var(--amber)">Peak</strong></div>
+  <div class="tb-title">Nepal Tourism Atlas · 2024</div>
+  <div class="tb-sep"></div>
+  <div class="tb-time" id="clock">—</div>
+</div>
+
+<!-- ═══ LEFT PANEL ═══ -->
+<div id="left">
+
+  <!-- CV HERO -->
+  <div class="cv-hero">
+    <div class="cv-name">Rohit <em>Adhikari</em></div>
+    <div class="cv-degree">// Student · Geomatics Engineering</div>
+    <div class="cv-contact">
+      <span><span class="ico">◉</span>Pokhara-33, Kaski, Nepal</span>
+      <a href="tel:+9779862385920"><span class="ico">✆</span>+977-9862385920</a>
+      <a href="mailto:adhikariprabeash13@gmail.com"><span class="ico">✉</span>adhikariprabeash13@gmail.com</a>
+    </div>
+  </div>
+
+  <!-- Profile -->
+  <div class="p-sec">
+    <div class="p-title">Profile</div>
+    <ul class="profile-list">
+      <li>Geomatics Engineering student with strong interest in GIS and spatial data analysis.</li>
+      <li>Skilled in ArcGIS, data handling, and spatial visualization.</li>
+      <li>Experienced in student leadership and community coordination.</li>
+    </ul>
+  </div>
+
+  <!-- Skills -->
+  <div class="p-sec">
+    <div class="p-title">Skills</div>
+    <div class="skill-tags">
+      <span class="stag gis">ArcGIS</span>
+      <span class="stag gis">QGIS</span>
+      <span class="stag gis">Spatial Analysis</span>
+      <span class="stag gis">GIS Visualization</span>
+      <span class="stag prog">HTML</span>
+      <span class="stag prog">Data Analysis</span>
+      <span class="stag db">Microsoft Office</span>
+      <span class="stag db">Canva</span>
+      <span class="stag lang">Nepali</span>
+      <span class="stag lang">English</span>
+      <span class="stag lang">Hindi</span>
+    </div>
+  </div>
+
+  <!-- Education -->
+  <div class="p-sec">
+    <div class="p-title">Education</div>
+    <div class="edu-list">
+      <div class="edu-item">
+        <div class="edu-yr">2022 — Present</div>
+        <div class="edu-inst">Kathmandu University</div>
+        <div class="edu-deg">Bachelor's in Geomatics Engineering</div>
+      </div>
+      <div class="edu-item">
+        <div class="edu-yr">2018 — 2019</div>
+        <div class="edu-inst">Diamond Secondary School</div>
+        <div class="edu-deg">Grade 12 (Science Stream)</div>
+      </div>
+      <div class="edu-item">
+        <div class="edu-yr">2018</div>
+        <div class="edu-inst">BVM Higher Secondary School</div>
+        <div class="edu-deg">Grade 10</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- National KPIs -->
+  <div class="p-sec">
+    <div class="p-title">National Overview <span>2024 Data</span></div>
+    <div class="stat-grid">
+      <div class="sc"><div class="sc-n">7</div><div class="sc-l">Provinces</div></div>
+      <div class="sc"><div class="sc-n amber" id="kpi-vis">1.1M</div><div class="sc-l">Visitors/yr</div><div class="sc-d">↑ +8.4% YoY</div></div>
+      <div class="sc"><div class="sc-n">24</div><div class="sc-l">Active Districts</div><div class="sc-d">↑ peak season</div></div>
+      <div class="sc"><div class="sc-n" id="kpi-hr">3.2k</div><div class="sc-l">Arrivals/hr</div><div class="sc-d">↑ peak hours</div></div>
+    </div>
+  </div>
+
+  <!-- Layers -->
+  <div class="p-sec">
+    <div class="p-title">Layer Controls</div>
+    <div class="layer-row" onclick="toggleLayer('choropleth')">
+      <div class="lchk on" id="chk-choropleth"></div>🗺 Tourist Density
+    </div>
+    <div class="layer-row" onclick="toggleLayer('sites')">
+      <div class="lchk on" id="chk-sites"></div>📍 Key Sites
+    </div>
+    <div class="layer-row" onclick="toggleLayer('borders')">
+      <div class="lchk on" id="chk-borders"></div>─ Province Borders
+    </div>
+    <div class="p-title" style="margin-top:10px;margin-bottom:0">Basemap</div>
+    <div class="bm-row">
+      <button class="bm-btn" id="bm-dark" onclick="switchBase('dark')">Dark</button>
+      <button class="bm-btn active" id="bm-topo" onclick="switchBase('topo')">Topo</button>
+      <button class="bm-btn" id="bm-sat" onclick="switchBase('sat')">Satellite</button>
+    </div>
+  </div>
+
+  <!-- Legend -->
+  <div class="p-sec">
+    <div class="p-title">Choropleth — Tourist Density</div>
+    <div class="leg-ramp">
+      <span style="background:#0d2136"></span><span style="background:#0e3d5f"></span>
+      <span style="background:#1a6b8a"></span><span style="background:#2196c4"></span>
+      <span style="background:#41b8d5"></span><span style="background:#79e2f2"></span>
+    </div>
+    <div class="leg-labels"><span>Low</span><span>Medium</span><span>High</span></div>
+    <div class="leg-rows">
+      <div class="leg-row"><div class="leg-sw" style="background:#0d2136"></div>0 – 5,000</div>
+      <div class="leg-row"><div class="leg-sw" style="background:#0e3d5f"></div>5k – 20,000</div>
+      <div class="leg-row"><div class="leg-sw" style="background:#1a6b8a"></div>20k – 60,000</div>
+      <div class="leg-row"><div class="leg-sw" style="background:#2196c4"></div>60k – 150,000</div>
+      <div class="leg-row"><div class="leg-sw" style="background:#41b8d5"></div>150k – 350,000</div>
+      <div class="leg-row"><div class="leg-sw" style="background:#79e2f2"></div>350,000+</div>
+    </div>
+    <div class="mk-leg">
+      <div class="p-title" style="margin-top:8px;margin-bottom:4px">Key Sites Legend</div>
+      <div class="mk-row"><div class="mk-dot" style="background:#f5a623"></div>Adventure / Trekking</div>
+      <div class="mk-row"><div class="mk-dot" style="background:#9b6dff"></div>Heritage Sites</div>
+      <div class="mk-row"><div class="mk-dot" style="background:#3ecf82"></div>Wildlife / National Park</div>
+      <div class="mk-row"><div class="mk-dot" style="background:#4a8fe8"></div>Nature / Scenic</div>
+      <div class="mk-row"><div class="mk-dot" style="background:#e85d4a"></div>Pilgrimage</div>
+    </div>
+  </div>
+
+  <!-- Top Provinces -->
+  <div class="p-sec">
+    <div class="p-title">Top Provinces by Visitors</div>
+    <div id="top-provs"></div>
+  </div>
+
+  <!-- Data Sources -->
+  <div class="p-sec">
+    <div class="p-title">Data Sources</div>
+    <div class="src">
+      <strong>Tourist Arrival Data</strong>
+      Nepal Tourism Board (NTB) — Annual Statistical Report 2024.<br/>
+      MoCTCA Nepal · <a href="https://ntb.gov.np" target="_blank">ntb.gov.np</a>
+      <strong>Province Boundaries</strong>
+      HDX / OCHA — Nepal Admin Boundaries.<br/>
+      Simplified: Douglas-Peucker (0.005°) · <a href="https://data.humdata.org" target="_blank">data.humdata.org</a>
+      <strong>Basemap</strong>
+      © CartoDB · © OpenStreetMap contributors
+    </div>
+  </div>
+
+</div>
+
+<!-- ═══ MAP ═══ -->
+<div id="map-area">
+  <div id="map"></div>
+
+  <div id="hover-panel">
+    <h5><div class="dpulse"></div>Hover Info Panel</h5>
+    <span class="hp-idle">Hover over a province to explore tourism data</span>
+  </div>
+
+  <div id="coord-bar">
+    <span>Lat <span id="c-lat">—</span></span>
+    <span>Lng <span id="c-lng">—</span></span>
+    <span style="margin-left:auto">WGS84 · EPSG:4326 · Leaflet.js 1.9.4 · Douglas-Peucker Simplified</span>
+  </div>
+</div>
+
+<!-- ═══ RIGHT PANEL ═══ -->
+<div id="right">
+
+  <div class="tab-nav">
+    <button class="tab-btn active" onclick="showTab('overview')">Overview</button>
+    <button class="tab-btn" onclick="showTab('analysis')">Analysis</button>
+    <button class="tab-btn" onclick="showTab('district')">District</button>
+    <button class="tab-btn" onclick="showTab('data')">Data</button>
+  </div>
+
+  <!-- ── OVERVIEW ── -->
+  <div class="tab-pane active" id="tab-overview">
+
+    <div class="rf-bar">
+      <div class="dot-pulse"></div>
+      <span style="font-family:var(--mono);font-size:.56rem;color:var(--dim)">Live · Refresh:</span>
+      <button class="rf-btn active" id="rf-5"  onclick="setRefresh(5)">5s</button>
+      <button class="rf-btn"        id="rf-10" onclick="setRefresh(10)">10s</button>
+      <button class="rf-btn"        id="rf-30" onclick="setRefresh(30)">30s</button>
+      <span style="font-family:var(--mono);font-size:.54rem;color:var(--dimmer);margin-left:auto" id="next-upd">Next: 5s</span>
+    </div>
+
+    <div class="mini-chart">
+      <div class="chart-title">Visitors by Province (thousands)</div>
+      <div class="bar-chart" id="prov-chart"></div>
+      <div style="display:flex;gap:2px;margin-top:4px" id="prov-labels"></div>
+    </div>
+
+    <div class="type-split">
+      <div class="chart-title" style="margin-bottom:7px">Tourism Type Split</div>
+      <div class="split-row"><span class="split-label">Adventure</span><div class="split-bw"><div class="split-bf" style="width:50%;background:var(--amber)"></div></div><span class="split-val">50%</span></div>
+      <div class="split-row"><span class="split-label">Cultural</span><div class="split-bw"><div class="split-bf" style="width:20%;background:var(--purple)"></div></div><span class="split-val">20%</span></div>
+      <div class="split-row"><span class="split-label">Pilgrimage</span><div class="split-bw"><div class="split-bf" style="width:15%;background:var(--red)"></div></div><span class="split-val">15%</span></div>
+      <div class="split-row"><span class="split-label">Wildlife</span><div class="split-bw"><div class="split-bf" style="width:10%;background:var(--green)"></div></div><span class="split-val">10%</span></div>
+      <div class="split-row"><span class="split-label">Nature</span><div class="split-bw"><div class="split-bf" style="width:5%;background:var(--blue)"></div></div><span class="split-val">5%</span></div>
+    </div>
+
+    <div class="mini-chart">
+      <div class="chart-title">Monthly Arrivals 2024</div>
+      <div class="bar-chart" id="mo-chart"></div>
+      <div style="display:flex;gap:2px;margin-top:4px" id="mo-labels"></div>
+    </div>
+
+    <div class="p-sec"><div class="p-title">Session Stats</div></div>
+    <div class="sess-grid">
+      <div class="sess-c"><div class="sess-n" id="s-upd">0</div><div class="sess-l">Updates</div></div>
+      <div class="sess-c"><div class="sess-n" id="s-dist">0</div><div class="sess-l">Provinces refreshed</div></div>
+      <div class="sess-c"><div class="sess-n" id="s-delta" style="color:var(--green)">+0</div><div class="sess-l">Total Δ visitors</div></div>
+      <div class="sess-c"><div class="sess-n" style="font-size:.72rem" id="s-last">—</div><div class="sess-l">Last update</div></div>
+    </div>
+
+    <div class="p-sec"><div class="p-title">Live Activity Feed</div></div>
+    <div style="padding:0 11px 11px"><div class="feed-list" id="feed-list"></div></div>
+
+  </div>
+
+  <!-- ── ANALYSIS ── -->
+  <div class="tab-pane" id="tab-analysis">
+    <div class="p-sec"><div class="p-title">Key Insights</div></div>
+
+    <div class="ic">
+      <div class="ic-h">🏔 Himalaya Dominance</div>
+      <div class="ic-b">Solukhumbu &amp; Kaski account for 63% of adventure tourism. EBC trek drives ~380K visitors annually — NPR 28B in economic activity.</div>
+      <div class="ic-tags"><span class="ic-tag">Solukhumbu</span><span class="ic-tag">Kaski</span><span class="ic-tag">EBC</span></div>
+    </div>
+    <div class="ic">
+      <div class="ic-h">🛕 Heritage Concentration</div>
+      <div class="ic-b">Bagmati Province holds 18 of Nepal's 29 UNESCO sites. Kathmandu Valley receives 520K visitors — 47% of national total — in ~2% of land area.</div>
+      <div class="ic-tags"><span class="ic-tag">UNESCO</span><span class="ic-tag">Bagmati</span><span class="ic-tag">Cultural</span></div>
+    </div>
+    <div class="ic">
+      <div class="ic-h">📈 Untapped Growth</div>
+      <div class="ic-b">Karnali &amp; Sudurpashchim show lowest density — significant ecotourism potential. Rara Lake &amp; Api Nampa corridors remain largely undeveloped.</div>
+      <div class="ic-tags"><span class="ic-tag">Ecotourism</span><span class="ic-tag">Wildlife</span><span class="ic-tag">Karnali</span></div>
+    </div>
+    <div class="ic">
+      <div class="ic-h">📅 Seasonality Pattern</div>
+      <div class="ic-b">Peak: Oct–Nov &amp; Mar–Apr. Monsoon Jul–Aug sees 68% drop. Shoulder season promotion could yield 200K+ additional annual visitors.</div>
+    </div>
+    <div class="ic">
+      <div class="ic-h">🗺 GeoJSON Pre-Processing</div>
+      <div class="ic-b">Douglas-Peucker simplification (tolerance 0.005°) applied in QGIS. Check Validity tool used to fix topology errors. File size reduced ~68% for web performance.</div>
+    </div>
+
+    <div class="p-sec" style="margin-top:4px"><div class="p-title">Technical Metadata</div></div>
+    <div style="padding:0 11px 11px">
+      <table class="meta-t">
+        <tr><td>Projection</td><td>WGS84 / EPSG:4326</td></tr>
+        <tr><td>Renderer</td><td>Leaflet.js 1.9.4</td></tr>
+        <tr><td>Simplification</td><td>Douglas-Peucker</td></tr>
+        <tr><td>Tolerance</td><td>0.005°</td></tr>
+        <tr><td>Features</td><td>7 Province Polygons</td></tr>
+        <tr><td>Boundary Source</td><td>OCHA / HDX 2024</td></tr>
+        <tr><td>Tourist Data</td><td>NTB / MoCTCA 2024</td></tr>
+        <tr><td>Developer</td><td>Rohit Adhikari</td></tr>
+      </table>
+    </div>
+  </div>
+
+  <!-- ── DISTRICT ── -->
+  <div class="tab-pane" id="tab-district">
+    <div class="dd-hero">
+      <div class="dd-name" id="dd-name">Click a province</div>
+      <div class="dd-sub" id="dd-sub">Select any province on the map</div>
+    </div>
+    <div class="dd-grid">
+      <div class="dd-cell"><div class="dd-cl">Province No.</div><div class="dd-cv" id="dd-num">—</div></div>
+      <div class="dd-cell"><div class="dd-cl">Headquarters</div><div class="dd-cv" id="dd-hq">—</div></div>
+      <div class="dd-cell"><div class="dd-cl">Annual Visitors</div><div class="dd-cv" id="dd-vis">—</div></div>
+      <div class="dd-cell"><div class="dd-cl">Pop. Density p/km²</div><div class="dd-cv" id="dd-dens">—</div></div>
+      <div class="dd-cell"><div class="dd-cl">Area km²</div><div class="dd-cv" id="dd-area">—</div></div>
+      <div class="dd-cell"><div class="dd-cl">National Rank</div><div class="dd-cv" id="dd-rank">—</div></div>
+    </div>
+    <div class="p-sec"><div class="p-title">Tourism Profile</div></div>
+    <div style="padding:0 13px 12px;font-size:.63rem;color:var(--dim);line-height:1.6" id="dd-profile">
+      Click any province polygon on the map to load its detailed tourism profile here.
+    </div>
+  </div>
+
+  <!-- ── DATA ── -->
+  <div class="tab-pane" id="tab-data">
+    <div class="p-sec"><div class="p-title">Province Data Table <span>sorted by visitors</span></div></div>
+    <div class="dtw">
+      <table class="dt">
+        <thead><tr><th>Province</th><th>Visitors</th><th>p/km²</th><th>Type</th><th>Rank</th></tr></thead>
+        <tbody id="dt-body"></tbody>
+      </table>
+    </div>
+  </div>
+
+</div>
+
+<!-- ═══ SCRIPTS ═══ -->
+<script>
+/* ───── DATA ───── */
+const PROVS = [
+  { id:1, name:"Koshi Province", num:1, hq:"Biratnagar", area:25905, pop:4534943, density:175, tourists:180000, rank:3,
+    type:"Adventure / Trekking",
+    profile:"Home to Sagarmatha (Everest) National Park. The Everest Base Camp trail begins at Lukla, Solukhumbu. Ilam district famous for tea gardens and rolling hills. Janakpur pilgrimage corridor in the south.",
+    coords:[[[87.0,26.35],[88.2,26.35],[88.2,27.9],[87.8,28.6],[86.7,28.6],[86.5,27.5],[87.0,26.35]]]
+  },
+  { id:2, name:"Madhesh Province", num:2, hq:"Janakpur", area:9661, pop:6126288, density:634, tourists:95000, rank:5,
+    type:"Pilgrimage / Wildlife",
+    profile:"Flat Terai region bordering India. Janakpur — birthplace of Sita — is a major Hindu pilgrimage site. Koshi Tappu Wildlife Reserve hosts important wetland birds and elephants.",
+    coords:[[[85.6,26.36],[87.0,26.36],[87.0,26.95],[85.6,26.95],[85.6,26.36]]]
+  },
+  { id:3, name:"Bagmati Province", num:3, hq:"Hetauda", area:20300, pop:6084042, density:300, tourists:520000, rank:1,
+    type:"Cultural / Heritage",
+    profile:"Nepal's most visited province. Kathmandu Valley contains 3 UNESCO World Heritage Cities and 7 monument zones. Langtang National Park for alpine trekking. Also includes Chandragiri and Namobuddha.",
+    coords:[[[84.5,26.8],[85.6,26.8],[85.6,28.1],[84.5,28.0],[83.9,27.6],[84.5,26.8]]]
+  },
+  { id:4, name:"Gandaki Province", num:4, hq:"Pokhara", area:21504, pop:2479745, density:115, tourists:310000, rank:2,
+    type:"Adventure / Nature",
+    profile:"Pokhara — Nepal's adventure capital — hosts the Annapurna Conservation Area (world's most trekked circuit). Phewa Lake, Devi's Fall, Gupteshwor Cave. Gateway to Mustang and Manaslu circuits.",
+    coords:[[[83.1,28.0],[84.5,28.0],[84.2,29.3],[83.5,29.5],[82.8,29.0],[83.1,28.0]]]
+  },
+  { id:5, name:"Lumbini Province", num:5, hq:"Deukhuri", area:22288, pop:4891025, density:220, tourists:145000, rank:4,
+    type:"Pilgrimage / Wildlife",
+    profile:"Birthplace of Lord Buddha — Lumbini is a UNESCO World Heritage Site. Chitwan National Park (UNESCO) hosts Bengal tiger, one-horned rhino and gharial. Bardia NP for off-the-beaten-path wildlife.",
+    coords:[[[82.0,27.3],[83.9,27.3],[83.9,28.2],[82.8,28.4],[82.0,28.0],[82.0,27.3]]]
+  },
+  { id:6, name:"Karnali Province", num:6, hq:"Birendranagar", area:27984, pop:1694889, density:61, tourists:25000, rank:7,
+    type:"Ecotourism / Adventure",
+    profile:"Nepal's largest and most remote province. Rara Lake — Nepal's largest lake — is a pristine ecotourism destination. Dolpo region features ancient Bon culture and crystal mountain trekking.",
+    coords:[[[81.0,28.3],[82.0,28.3],[82.8,28.8],[82.5,29.8],[81.5,30.0],[80.5,29.7],[80.5,28.8],[81.0,28.3]]]
+  },
+  { id:7, name:"Sudurpashchim Province", num:7, hq:"Dhangadhi", area:19539, pop:2552517, density:131, tourists:38000, rank:6,
+    type:"Wildlife / Culture",
+    profile:"Far-western province with Api Nampa Conservation Area and Khaptad National Park. Shuklaphanta NP for Bengal tiger and wildlife. Rich Tharu cultural heritage and traditional festivals.",
+    coords:[[[80.0,28.6],[81.0,28.6],[80.5,29.7],[80.0,30.3],[79.0,30.0],[79.0,28.8],[80.0,28.6]]]
+  }
+];
+
+const SITES = [
+  {lat:27.987,lng:86.925,name:"Sagarmatha / Everest NP",type:"adventure",col:"#f5a623"},
+  {lat:28.209,lng:83.958,name:"Annapurna Conservation Area",type:"adventure",col:"#f5a623"},
+  {lat:27.941,lng:85.363,name:"Langtang National Park",type:"adventure",col:"#f5a623"},
+  {lat:29.550,lng:83.800,name:"Mustang Trekking Zone",type:"adventure",col:"#f5a623"},
+  {lat:27.710,lng:85.314,name:"Kathmandu Valley (UNESCO)",type:"heritage",col:"#9b6dff"},
+  {lat:27.672,lng:85.430,name:"Bhaktapur Durbar Square",type:"heritage",col:"#9b6dff"},
+  {lat:27.573,lng:84.375,name:"Chitwan National Park",type:"wildlife",col:"#3ecf82"},
+  {lat:28.190,lng:81.290,name:"Bardia National Park",type:"wildlife",col:"#3ecf82"},
+  {lat:29.042,lng:82.088,name:"Rara Lake",type:"nature",col:"#4a8fe8"},
+  {lat:28.217,lng:83.955,name:"Phewa Lake, Pokhara",type:"nature",col:"#4a8fe8"},
+  {lat:27.470,lng:83.276,name:"Lumbini (UNESCO)",type:"pilgrimage",col:"#e85d4a"},
+  {lat:26.727,lng:85.926,name:"Janakpur",type:"pilgrimage",col:"#e85d4a"},
+];
+
+const MONTHLY = [
+  {m:"Jan",v:72},{m:"Feb",v:68},{m:"Mar",v:95},{m:"Apr",v:105},
+  {m:"May",v:60},{m:"Jun",v:32},{m:"Jul",v:28},{m:"Aug",v:30},
+  {m:"Sep",v:58},{m:"Oct",v:120},{m:"Nov",v:108},{m:"Dec",v:82}
+];
+
+const SORTED = [...PROVS].sort((a,b)=>b.tourists-a.tourists);
+
+/* ───── MAP ───── */
+const map = L.map('map',{center:[28.1,83.9],zoom:7});
+
+const TILES = {
+  dark: L.tileLayer('https://{s}.basemaps.cartocdn.com/dark_nolabels/{z}/{x}/{y}{r}.png',{attribution:'© CARTO © OSM',maxZoom:19}),
+  topo: L.tileLayer('https://{s}.tile.opentopomap.org/{z}/{x}/{y}.png',{attribution:'© OpenTopoMap',maxZoom:17}),
+  sat:  L.tileLayer('https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}',{attribution:'© Esri',maxZoom:19})
+};
+TILES.topo.addTo(map);
+let curBase = 'topo';
+
+map.on('mousemove', e => {
+  document.getElementById('c-lat').textContent = e.latlng.lat.toFixed(4);
+  document.getElementById('c-lng').textContent = e.latlng.lng.toFixed(4);
+});
+
+/* ───── CHOROPLETH COLOR ───── */
+function tCol(t) {
+  return t>350000?'#79e2f2':t>150000?'#41b8d5':t>60000?'#2196c4':t>20000?'#1a6b8a':t>5000?'#0e3d5f':'#0d2136';
+}
+
+/* ───── LAYERS ───── */
+let choroplethLayer, sitesLayer, bordersLayer;
+const layerOn = {choropleth:true, sites:true, borders:true};
+
+function mkGeoJSON(p) {
+  return {type:"Feature", properties:p, geometry:{type:"Polygon", coordinates:p.coords}};
+}
+
+// Province labels group
+const labelGroup = L.layerGroup().addTo(map);
+
+function buildChoropleth() {
+  const fc = {type:"FeatureCollection", features: PROVS.map(mkGeoJSON)};
+  choroplethLayer = L.geoJSON(fc, {
+    style: f => ({fillColor:tCol(f.properties.tourists), weight:0, fillOpacity:.8}),
+    onEachFeature(feature, layer) {
+      layer.on({
+        mouseover(e) {
+          e.target.setStyle({fillOpacity:.95, weight:2, color:'#79e2f2'});
+          updateHover(feature.properties);
+        },
+        mouseout(e) { choroplethLayer.resetStyle(e.target); resetHover(); },
+        click(e) { map.fitBounds(e.target.getBounds().pad(.1)); updateDistrict(feature.properties); showTab('district'); }
+      });
+    }
+  }).addTo(map);
+
+  // Labels
+  PROVS.forEach(p => {
+    const c = p.coords[0];
+    const lat = c.reduce((s,x)=>s+x[1],0)/c.length;
+    const lng = c.reduce((s,x)=>s+x[0],0)/c.length;
+    L.marker([lat,lng], {
+      icon: L.divIcon({
+        className:'',
+        html:`<div style="font-family:'JetBrains Mono',monospace;font-size:.56rem;color:#fff;text-shadow:0 1px 4px #000,0 0 10px #000;text-align:center;line-height:1.4;pointer-events:none;white-space:nowrap;">${p.name.replace(' Province','')}<br/><span style="color:#79e2f2">${(p.tourists/1000).toFixed(0)}K</span></div>`,
+        iconAnchor:[45,10], iconSize:[90,20]
+      })
+    }).addTo(labelGroup);
+  });
+}
+
+function buildBorders() {
+  const fc = {type:"FeatureCollection", features: PROVS.map(mkGeoJSON)};
+  bordersLayer = L.geoJSON(fc, {
+    style:{fillColor:'transparent', weight:1.5, color:'rgba(255,255,255,.14)', dashArray:'4,3'}
+  }).addTo(map);
+}
+
+function buildSites() {
+  sitesLayer = L.layerGroup();
+  SITES.forEach(s => {
+    const icon = L.divIcon({
+      className:'',
+      html:`<div style="width:9px;height:9px;border-radius:50%;background:${s.col};border:1.5px solid rgba(255,255,255,.5);box-shadow:0 0 6px ${s.col}88"></div>`,
+      iconAnchor:[4,4], iconSize:[9,9]
+    });
+    L.marker([s.lat,s.lng],{icon}).bindPopup(`
+      <div class="pop-title">${s.name}</div>
+      <div class="pop-row"><span class="pop-k">Type</span><span class="pop-v">${s.type.charAt(0).toUpperCase()+s.type.slice(1)}</span></div>
+      <div class="pop-row"><span class="pop-k">Lat</span><span class="pop-v">${s.lat}</span></div>
+      <div class="pop-row"><span class="pop-k">Lng</span><span class="pop-v">${s.lng}</span></div>
+    `).addTo(sitesLayer);
+  });
+  sitesLayer.addTo(map);
+}
+
+buildChoropleth(); buildBorders(); buildSites();
+
+/* ───── HOVER PANEL ───── */
+function updateHover(p) {
+  document.getElementById('hover-panel').innerHTML = `
+    <h5><div class="dpulse" style="width:5px;height:5px;border-radius:50%;background:var(--teal);animation:pulse 1.6s infinite"></div>Province Info</h5>
+    <div class="hp-row"><span class="hp-k">Name</span><span class="hp-v">${p.name}</span></div>
+    <div class="hp-row"><span class="hp-k">HQ</span><span class="hp-v">${p.hq}</span></div>
+    <div class="hp-row"><span class="hp-k">Annual Visitors</span><span class="hp-v">${p.tourists.toLocaleString()}</span></div>
+    <div class="hp-row"><span class="hp-k">Pop. Density</span><span class="hp-v">${p.density} p/km²</span></div>
+    <div class="hp-row"><span class="hp-k">Tourism Type</span><span class="hp-v">${p.type}</span></div>
+    <div class="hp-row"><span class="hp-k">National Rank</span><span class="hp-v">#${p.rank} of 7</span></div>`;
+}
+function resetHover() {
+  document.getElementById('hover-panel').innerHTML = `<h5><div class="dpulse" style="width:5px;height:5px;border-radius:50%;background:var(--teal);animation:pulse 1.6s infinite"></div>Hover Info Panel</h5><span class="hp-idle">Hover over a province to explore tourism data</span>`;
+}
+
+/* ───── DISTRICT TAB ───── */
+function updateDistrict(p) {
+  document.getElementById('dd-name').textContent = p.name;
+  document.getElementById('dd-sub').textContent = `Province ${p.num} · ${p.type}`;
+  document.getElementById('dd-num').textContent = `P${p.num}`;
+  document.getElementById('dd-hq').textContent = p.hq;
+  document.getElementById('dd-vis').textContent = p.tourists.toLocaleString();
+  document.getElementById('dd-dens').textContent = p.density;
+  document.getElementById('dd-area').textContent = p.area.toLocaleString();
+  document.getElementById('dd-rank').textContent = `#${p.rank}`;
+  document.getElementById('dd-profile').textContent = p.profile;
+}
+
+/* ───── LAYER TOGGLE ───── */
+function toggleLayer(name) {
+  layerOn[name] = !layerOn[name];
+  document.getElementById('chk-'+name).classList.toggle('on', layerOn[name]);
+  const lmap = {choropleth:choroplethLayer, sites:sitesLayer, borders:bordersLayer};
+  layerOn[name] ? map.addLayer(lmap[name]) : map.removeLayer(lmap[name]);
+}
+
+/* ───── BASEMAP ───── */
+function switchBase(n) {
+  map.removeLayer(TILES[curBase]); TILES[n].addTo(map); curBase = n;
+  ['dark','topo','sat'].forEach(k => document.getElementById('bm-'+k).classList.toggle('active',k===n));
+}
+
+/* ───── TABS ───── */
+function showTab(name) {
+  document.querySelectorAll('.tab-pane').forEach(p=>p.classList.remove('active'));
+  document.querySelectorAll('.tab-btn').forEach(b=>b.classList.remove('active'));
+  document.getElementById('tab-'+name).classList.add('active');
+  const map2 = {overview:0,analysis:1,district:2,data:3};
+  document.querySelectorAll('.tab-btn')[map2[name]].classList.add('active');
+}
+
+/* ───── CHARTS ───── */
+function buildProvChart() {
+  const max = Math.max(...PROVS.map(p=>p.tourists));
+  const el = document.getElementById('prov-chart');
+  const ll = document.getElementById('prov-labels');
+  el.innerHTML = ll.innerHTML = '';
+  PROVS.forEach(p => {
+    const pct = (p.tourists/max*100).toFixed(0);
+    el.innerHTML += `<div class="bc-col"><div class="bc-bar" style="height:${pct}%"></div></div>`;
+    ll.innerHTML += `<div style="flex:1;font-family:var(--mono);font-size:.41rem;color:var(--dimmer);text-align:center">${p.name.split(' ')[0].substring(0,4)}</div>`;
+  });
+}
+function buildMoChart() {
+  const max = Math.max(...MONTHLY.map(m=>m.v));
+  const el = document.getElementById('mo-chart');
+  const ll = document.getElementById('mo-labels');
+  el.innerHTML = ll.innerHTML = '';
+  MONTHLY.forEach(m => {
+    const peak = ['Oct','Nov','Mar','Apr'].includes(m.m);
+    el.innerHTML += `<div class="bc-col"><div class="bc-bar ${peak?'amber':''}" style="height:${(m.v/max*100).toFixed(0)}%"></div></div>`;
+    ll.innerHTML += `<div style="flex:1;font-family:var(--mono);font-size:.41rem;color:var(--dimmer);text-align:center">${m.m[0]}</div>`;
+  });
+}
+buildProvChart(); buildMoChart();
+
+/* ───── TOP PROVINCES ───── */
+function buildTopProvs() {
+  const max = SORTED[0].tourists;
+  document.getElementById('top-provs').innerHTML = SORTED.map((p,i)=>`
+    <div class="tp-row">
+      <span class="rk">${i+1}</span>
+      <span class="nm">${p.name.replace(' Province','')}</span>
+      <div class="bw"><div class="bf" style="width:${(p.tourists/max*100).toFixed(0)}%;height:3px;border-radius:2px;background:var(--teal)"></div></div>
+      <span class="vl">${(p.tourists/1000).toFixed(0)}K</span>
+    </div>`).join('');
+}
+buildTopProvs();
+
+/* ───── DATA TABLE ───── */
+document.getElementById('dt-body').innerHTML = SORTED.map(p=>`
+  <tr>
+    <td>${p.name.replace(' Province','')}</td>
+    <td>${p.tourists.toLocaleString()}</td>
+    <td>${p.density}</td>
+    <td>${p.type.split('/')[0].trim()}</td>
+    <td>#${p.rank}</td>
+  </tr>`).join('');
+
+/* ───── LIVE FEED ───── */
+const feedTmpls = [
+  (p,v) => `${v} arrivals logged · ${p}`,
+  (p,v) => `Checkpoint update · ${p} · +${v}`,
+  (p,v) => `Peak activity · ${p} · ${v}/hr`,
+  (p,v) => `Trekker influx · ${p} · Δ+${v}`,
+];
+let sUpd=0, sDist=0, sDelta=0;
+
+function addFeed() {
+  const p = PROVS[Math.floor(Math.random()*PROVS.length)];
+  const v = Math.floor(Math.random()*500+50);
+  const tmpl = feedTmpls[Math.floor(Math.random()*feedTmpls.length)];
+  const now = new Date();
+  const t = `${now.getHours().toString().padStart(2,'0')}:${now.getMinutes().toString().padStart(2,'0')}:${now.getSeconds().toString().padStart(2,'0')}`;
+  const item = document.createElement('div');
+  item.className = 'fi';
+  item.innerHTML = `<span class="ft">${t}</span> <span class="fv">▶</span> <span class="fd">${tmpl(p.name.split(' ')[0],v)}</span>`;
+  const fl = document.getElementById('feed-list');
+  fl.insertBefore(item, fl.firstChild);
+  if(fl.children.length > 8) fl.removeChild(fl.lastChild);
+  sUpd++; sDist++; sDelta += v;
+  document.getElementById('s-upd').textContent = sUpd;
+  document.getElementById('s-dist').textContent = sDist;
+  document.getElementById('s-delta').textContent = '+'+sDelta.toLocaleString();
+  document.getElementById('s-last').textContent = t;
+}
+
+/* ───── REFRESH ───── */
+let rfInt = 5, rfCount = 5, rfTimer;
+function tick() {
+  rfCount--;
+  document.getElementById('next-upd').textContent = `Next: ${rfCount}s`;
+  if(rfCount<=0) {
+    rfCount = rfInt;
+    addFeed();
+    const v = 3200+Math.floor(Math.random()*400-200);
+    document.getElementById('kpi-hr').textContent = (v/1000).toFixed(1)+'k';
+    document.getElementById('live-hr').textContent = v.toLocaleString();
+  }
+}
+function setRefresh(s) {
+  rfInt = s; rfCount = s;
+  clearInterval(rfTimer); rfTimer = setInterval(tick,1000);
+  ['5','10','30'].forEach(x => {
+    const b = document.getElementById('rf-'+x);
+    b.classList.toggle('active', x==s);
+  });
+  document.getElementById('next-upd').textContent = `Next: ${s}s`;
+}
+setRefresh(5); addFeed();
+
+/* ───── CLOCK ───── */
+function clock() {
+  document.getElementById('clock').textContent = new Date().toLocaleTimeString('en-US',{hour:'2-digit',minute:'2-digit',second:'2-digit'});
+}
+clock(); setInterval(clock,1000);
+</script>
+</body>
+</html>
